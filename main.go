@@ -4,14 +4,20 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/jonas747/dca"
 )
 
 const (
+	// Name of your plugin, must be unique from all other plugins
+	Name        = "com.matthieuharle.bad"
 	soundPrefix = "@bad_"
-	url         = "http//cdn.shywim.fr/antoine/snd/"
+	url         = "http://cdn.shywim.fr/antoine/snd/"
 	urlSuffix   = ".ogg"
 )
 
+// Handle is called to check if your plugin can handle the sound
+// if you return true here, GetSound is expected to return valid sound data
 func Handle(name string) bool {
 	if !strings.HasPrefix(name, soundPrefix) {
 		return false
@@ -28,6 +34,7 @@ func Handle(name string) bool {
 	return true
 }
 
+// GetSound is called when one of your sound will be played
 func GetSound(name string) (buffer [][]byte) {
 	sound := strings.TrimLeft(name, soundPrefix)
 	resp, err := http.Get(url + sound + urlSuffix)
@@ -39,12 +46,23 @@ func GetSound(name string) (buffer [][]byte) {
 	}
 	defer resp.Body.Close()
 
-	var buf []byte
-	_, err = io.ReadFull(resp.Body, buf)
+	dcaSessions, err := dca.EncodeMem(resp.Body, dca.StdEncodeOptions)
+	defer dcaSessions.Cleanup()
 	if err != nil {
 		return nil
 	}
 
-	buffer = append(buffer, buf)
-	return
+	decoder := dca.NewDecoder(dcaSessions)
+	for {
+		frame, err := decoder.OpusFrame()
+		if err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				return buffer
+			}
+
+			return nil
+		}
+
+		buffer = append(buffer, frame)
+	}
 }
