@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	// Name of your plugin, must be unique from all other plugins
-	Name        = "com.matthieuharle.bad"
 	soundPrefix = "@bad_"
 	url         = "http://cdn.shywim.fr/antoine/snd/"
 	urlSuffix   = ".ogg"
 )
+
+// Name of your plugin, must be unique from all other plugins
+var Name = "com.matthieuharle.bad"
 
 // Handle is called to check if your plugin can handle the sound
 // if you return true here, GetSound is expected to return valid sound data
